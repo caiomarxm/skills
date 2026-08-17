@@ -31,6 +31,7 @@ These rules define **what a good plan looks like**. The generated **Commits** li
 - Be **buildable / runnable** — the tree stays green after each commit.
 - Prefer a **vertical slice** — one end-to-end thread of value (or one enforced invariant path) plus the **tests that prove it**, in the **same** commit when feasible.
 - Tell a clear step in the overall narrative — ordering must respect the TDD’s **workstream dependencies**.
+- Include a **Product outcome** — a short, high-level description of the new behavior, user-visible change, or product capability delivered by this commit.
 - Include **both definition and usage** of anything new (no dead exports, no handler without sender).
 
 ### Each commit must not
@@ -91,6 +92,7 @@ Extract only what is needed to order and describe commits:
 - Accepted decisions and decision constraints.
 - Explicit implementation order and workstream dependencies.
 - Behavior changes vs. visual/style-only changes.
+- Product outcomes for each commit: what behavior changes, what capability appears, or what visible result the product gains.
 - Code areas from the code map and implementation surface.
 - Required tests and verification.
 - Non-goals, guardrails, and "what does not change".
@@ -125,6 +127,7 @@ The appended block adds **vertical-slice commit ordering** only — no duplicate
 
 1. `<gitmoji> <title ≤50 chars incl. gitmoji>`
 
+   - Product outcome
    - Purpose
    - Code areas touched
    - Tests added/updated in this commit
@@ -132,6 +135,7 @@ The appended block adds **vertical-slice commit ordering** only — no duplicate
    - Optional when useful: Depends on / Source anchors / Guardrails / Verification
 
 2. `<gitmoji> <title ≤50 chars incl. gitmoji>`
+   - Product outcome
    - Purpose
    - Code areas touched
    - Tests added/updated in this commit
