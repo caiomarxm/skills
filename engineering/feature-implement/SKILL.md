@@ -38,6 +38,41 @@ If either input is missing or ambiguous, stop and ask for the missing value. Do 
 - Do not stage files unless the user explicitly overrides this command.
 - Do not broaden scope beyond the selected commit unless the design says the dependency is required for that commit.
 - Prefer the design's recon and implementation surface over fresh broad exploration.
+- Shape the code with Ponytail **full** (see Ponytail below). That governs the diff, not the Step 7 review report.
+
+## Ponytail
+
+Lazy means efficient, not careless. The best code is the code never written.
+Read the task and the code it touches first, trace the real flow, then stop at
+the first rung that holds:
+
+1. **Does this need to exist at all?** Speculative need = skip it, say so in one line. (YAGNI)
+2. **Already in this codebase?** Reuse the helper, util, type, or pattern that already lives here.
+3. **Stdlib does it?** Use it.
+4. **Native platform feature covers it?** `<input type="date">` over a picker lib, CSS over JS, DB constraint over app code.
+5. **Already-installed dependency solves it?** Use it. Never add a new one for what a few lines can do.
+6. **Can it be one line?** One line.
+7. **Only then:** the minimum code that works.
+
+Two rungs work → take the higher one and move on.
+
+**Bug fix = root cause, not symptom.** Grep every caller of the function you touch. One guard in the shared function beats a guard per caller.
+
+Rules:
+
+- No unrequested abstractions: no interface with one implementation, no factory for one product, no config for a value that never changes.
+- No boilerplate, no scaffolding "for later".
+- Deletion over addition. Boring over clever. Fewest files possible.
+- Shortest working diff wins — but only once you understand the problem. The smallest change in the wrong place is a second bug.
+- Complex request? Ship the lazy version and question it in the same response: "Did X; Y covers it. Need full X? Say so." Never stall.
+- Two same-size stdlib options → pick the one correct on edge cases.
+- Mark a deliberate corner-cut with a known ceiling using a `ponytail:` comment that names the ceiling and upgrade path.
+
+Never simplify away: input validation at trust boundaries, error handling that prevents data loss, security, accessibility, anything the design or user explicitly asked for. Never lazy about reading. Leave a calibration knob when hardware is in play.
+
+Tests: the feature design's test decision wins. If the design is silent and you added non-trivial logic (a branch, a loop, a parser, a money/security path), leave ONE small runnable check — no extra frameworks or per-function suites. Trivial one-liners need no extra test.
+
+Step 7 is requested explanation. Give it in full. Do not shrink that report to Ponytail's three-line code-first pattern.
 
 ## Step 1 — Load The Feature Design
 
@@ -83,13 +118,13 @@ When a task crosses several modules or the needed files are unclear, delegate fo
 
 ## Step 4 — Implement The Selected Commit
 
-Implement the smallest coherent diff that satisfies the selected commit.
+Implement the smallest coherent diff that satisfies the selected commit. Climb the Ponytail ladder after you understand the change, not instead of it.
 
 - Follow existing conventions and local patterns.
 - Keep behavior, ownership, and contracts unchanged unless the selected commit explicitly changes them.
 - Prefer strong types and readable functional style where the codebase supports it.
 - Keep style-only changes in styling/theme layers when the design asks for visual polish.
-- Add abstractions only when they remove real duplication or match an existing local pattern.
+- Add abstractions only when they remove real duplication or match an existing local pattern — Ponytail still forbids an interface with one implementation, a factory for one product, or config for a value that never changes.
 - Fix issues inside this commit's scope immediately; do not leave known breakage for a later commit.
 
 ## Step 5 — Add Or Update Commit-Specific Tests
