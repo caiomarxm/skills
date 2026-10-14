@@ -1,15 +1,15 @@
 ---
-name: implement-mr-and-autopilot
+name: implement-pr-and-autopilot
 description: >-
-  Use this when the user asks you to fully implement and autopilot an MR from
+  Use this when the user asks you to fully implement and autopilot a PR from
   a commit-by-commit plan (preferred), a spec, a design doc, or a task in the
   chat. This assumes no user interaction until the whole loop is complete.
 disable-model-invocation: true
 ---
 
-# Implement MR and Autopilot
+# Implement PR and Autopilot
 
-Ship one MR. Do not plan: no `feature-plan`, no `grilling`.
+Ship one PR. Do not plan: no `feature-plan`, no `grilling`.
 
 ## Input
 
@@ -29,13 +29,13 @@ relitigate them.
 - The source has a commit list → one loop per commit, in order.
 - No commit list → the whole task is one commit.
 
-**Which MR** (only for plans with `### MR <N>` headings):
+**Which PR** (only for plans with `### PR <N>` or `### MR <N>` headings):
 
-- One heading → that MR.
+- One heading → that PR.
 - Several, and the user named one → that one.
 - Several, and the user named none → ask which. Ask nothing else.
 
-State your reading (source, MR, commits) in your first message, then start.
+State your reading (source, PR, commits) in your first message, then start.
 
 ## Branch
 
@@ -63,8 +63,8 @@ unstaged.
 ```text
 /feature-implement @<source-file> commit <K>
 
-Commit <K> is one commit of the list in the ## Plan section<, under ### MR N —
-include only if the plan has MR headings>. Implement only commit <K>.
+Commit <K> is one commit of the list in the ## Plan section<, under ### PR/MR
+N — include only if the plan has PR or MR headings>. Implement only commit <K>.
 Decisions above the plan are settled — follow them, do not relitigate.
 ```
 
@@ -105,7 +105,7 @@ from the plan when it fits.
 
 - Run the full lint and test suites the repo (including integration and e2e).
   Fix anything red.
-- Then run Bugbot on the full MR and see if there are any bugs,
+- Then run Bugbot on the full PR and see if there are any bugs,
   if there are, run the `implementer` subagent to fix them, then run
   the `reviewer` subagent once again. Commit the fixes (if any).
 - Finally, launch the `validator` subagent. Optionally you can pass it specifics on
@@ -116,21 +116,21 @@ from the plan when it fits.
   Change: the commits since <base-branch>.
   ```
 
-  - **works** → open the MR.
+  - **works** → open the PR.
   - **does not work** → send the failing outcomes and their evidence to the
     `implementer` as the task, run the `reviewer`, commit, then validate
     again. Still failing → stop and report to the user.
   - **unproven** → open the MR, and list the gaps in its description.
 
-Do not open an MR on a red tree.
+Do not open a PR on a red tree.
 
-## Open the MR
+## Open the PR
 
-Mirror the two most recent merged MRs on this repo.
+Mirror the two most recent merged PRs on this repo.
 
 - Title: ticket key (when there is one) + short product title.
-- Description: brief and product-focused — what the product gains, not a
-  file tour.
+- Run `/pr` on the full branch diff and validation evidence. Use its output as
+  the PR body. Change it only to correct facts.
 
 ## Keep it merge-ready
 

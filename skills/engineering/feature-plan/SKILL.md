@@ -117,4 +117,4 @@ a vertical slice.>
 Summarize the plan and point to the file. Ask for approval. After approval,
 remind the user:
 
-`/implement-mr-and-autopilot @<source-file>`
+`/implement-pr-and-autopilot @<source-file>`
