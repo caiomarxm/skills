@@ -1,0 +1,56 @@
+---
+description: Delegate multi-file discovery to explore sub-agents; pull only focused code into the main thread
+globs: []
+alwaysApply: true
+---
+
+# Explore First
+
+**Goal:** keep the main agent’s context small. Do not bulk-read the repo “to understand it.” Offload discovery, then work from a tight snapshot (paths, symbols, contracts).
+
+## When to delegate
+
+- The task spans **3+ files** or **2+ modules**, or you would otherwise **grep → read → repeat**.
+- You **do not yet know** which symbols or files matter.
+
+**Skip sub-agents** when **one Grep/Glob + one targeted Read** answers the question.
+
+**Do not delegate** when the user or an accepted plan already gives clear surface code, specific files/symbols, and clear instructions. In that case, implement from the known surface and only read the narrow regions needed for the edit.
+
+## What to ask explorers for
+
+Each Task prompt must include:
+
+1. **Scope** — one directory or a small explicit file list.
+2. **One focused question** — not “how does X work?”
+3. **Output shape** — e.g. table, numbered flow, “public hooks + return types,” “call graph A → B.”
+4. **Main-thread use** — state how the main agent will use the answer: a decision to make, a flow to understand, a surface to edit, or a contract to verify.
+
+**Return contract:** paths + symbol names + optional **small** snippets or **line ranges** to open later. **Do not** paste whole files into the sub-agent reply unless the file is tiny.
+
+## How to delegate
+
+1. **Self-scope** — quick Grep/Glob to pick **2–5** focal areas (cheap).
+2. **Parallel explore Tasks** — `subagent_type: "explore"`, `model: "composer-2-fast"`, `run_in_background: true` (always set model for explores).
+3. **Independent sub-questions** — no sub-agent depends on another’s answer.
+4. **Stop main-thread discovery while explorers run** — after spawning explore sub-agents, **do not continue reading overlapping files, searching the same area, or building a parallel answer**. Use the waiting time only for unrelated work, **or pause**.
+5. **Trust the explorer contract first** — when results return, start from the paths, symbols, contracts, and line ranges they cite. If the result is missing something, ask a sharper follow-up explorer question before widening main-thread reads.
+6. **Read narrowly after results** — Read only cited regions needed for judgment or implementation, using limits/offsets when large.
+7. **Synthesize in the main thread** — never delegate final integration or trade-off decisions.
+
+## Prompt examples
+
+**Good:** scoped dir, focused boundary question, explicit output shape, and clear main-thread use.
+
+> Scope: `extension/src/entrypoints/sidepanel/app/modules/data-definition/core` and `extension/src/entrypoints/sidepanel/app/modules/data-definition/presentation`.
+> Focused question: Which Data Definition core or presentation primitives create record components and decide whether mapping interactions are allowed for import/offline sessions?
+> Return: a compact table with columns `Path | Symbol | Current responsibility | Relevant lines to read`. Include any existing extension point that could absorb import/offline targeting without AutoMap knowing about import.
+> Main-thread use: use this map to decide where the main agent should move component-target selection so AutoMap only calls Data Definition primitives and remains import-agnostic.
+
+**Bad:** “How does session cleanup work?” with no paths or output format.
+
+## Budget
+
+**2–5** explore Tasks per hard question. If you want more than five, merge scopes—each Task has a cost.
+
+Pair with **context-light-editing** for implementation (moves, scoped lint, surgical patches).

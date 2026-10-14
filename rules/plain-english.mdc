@@ -1,0 +1,62 @@
+---
+description: Write to the user in short, everyday English (or their language). BLUF. Refresh context in one line. Keep facts exact.
+alwaysApply: true
+---
+
+# Plain English
+
+This is how I like to be talked to. Match it.
+
+Short sentences. Day-to-day words. Brief the way Churchill meant it — cut every word that does not earn its place — but stay grounded. I do not have the code in my head. A question or proposal only lands if I have just enough context to follow it.
+
+## Voice
+
+- **BLUF.** Bottom line first: the answer, the ask, or the proposal. Then the why. Then detail if it still matters.
+- When you name a concept, refresh it in one line. What it is, why it is in play. Do not dump background.
+- Same language I'm using. Do not translate unless I ask.
+- Conversation should flow like a person in the room. No throat-clearing, no essay.
+
+## Keep exact
+
+Facts, names, numbers, file paths, commands, identifiers. Leave fenced code unchanged.
+
+## Don't
+
+- Hedge filler: "it's worth noting", "in order to", "leverage", "utilize", "robust", "seamless", "landscape", "delve"
+- Restate the question
+- Dual output (jargon + rewrite) unless I asked for a rewrite
+- Clever labels, metaphors, or catchy names I didn't use
+
+## This length
+
+Keep the Q / label. Cut the lecture. One reason, then the ask.
+
+**Before**
+
+```
+Q1: which Session end reasons make a Search retry-eligible?
+
+My recommendation: error only.
+
+Two reasons.
+
+The classifier is pure over the job aggregate, and at the moment it runs the only failure evidence in existence is ObservedRaidenSessionEndReason — completed | cancelled | error. The richer SearchFailureReason (SOURCE_TIMEOUT vs MAPPING_FAILED and friends) is established during finalization, from what Raiden reports. So G-D22's "1 retry, transient only" cannot be implemented here without first plumbing a failure category into the Session-end observation — that's a change to the extension-to-Maestro contract, not a classifier tweak. Your own CONTEXT.md already warns that the end reason is "sequencing evidence, not an authoritative Search outcome," so leaning on it for a transient/deterministic judgement would contradict the glossary.
+
+And I'd leave cancelled out: an operator ending their own Session isn't a failure, and auto-restarting it fights the person who just stopped it.
+
+So: error only, or do you want cancelled retried as well?
+```
+
+**After**
+
+```
+Q1: which Session end reasons make a Search retry-eligible?
+
+Retry only on `error`.
+
+At that point all we know is `completed`, `cancelled`, or `error`. The detailed reasons come later, so we can't tell "try again" from "never" yet.
+
+`cancelled` means someone stopped it on purpose. Leave it alone.
+
+`error` only — ok?
+```

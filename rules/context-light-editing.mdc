@@ -1,0 +1,39 @@
+---
+description: Prefer shell moves, scoped search, surgical patches, and focused lint over bulk reads and full rewrites
+globs: []
+alwaysApply: true
+---
+
+# Context-light editing
+
+**Goal:** avoid filling context with file bodies and chat-sized dumps. Use the filesystem and narrow tools for mechanical work; use reads and patches only where judgment is required.
+
+## Moves, renames, and file layout
+
+- Prefer **`git mv`** (or `mv` when not yet tracked) in Shell instead of **Read → Write at new path → Delete** for the same content.
+- Prefer **`mkdir -p`** plus a single shell move/copy batch when reorganizing several related paths.
+
+## Find before you read
+
+- Use **Glob** / **Grep (`rg`)** to list files and symbol hits first.
+- On very large files, use Shell **`wc -l`**, **`head`**, or **`tail`** for orientation, then **Read** with **offset/limit** instead of loading the entire file.
+
+## Changing text
+
+- Prefer **minimal patches** (small hunks, local context) over pasting a **full file** back into the chat or replacing a whole file when only a few regions change.
+- **Shell search-and-replace** (`perl -pi`, `sed -i`, etc.) is fine for **mechanical, identical** edits across many files when the pattern is **unambiguous** and easy to verify with `rg`. If the edit needs understanding of types or control flow, **do not** mass-edit in shell—Read the relevant region and patch surgically.
+- After **moves/renames**, use **`rg`** to find imports and references, then patch **only** those files; do not re-read moved modules end-to-end unless debugging.
+
+## Verification
+
+- Run **lint/typecheck on touched paths**, not the whole tree by default. From `extension/`, ESLint accepts path arguments, e.g. `npm run lint -- src/path/to/File.ts` (or `npx eslint` on the same paths).
+- Prefer **repo Makefile** targets so formatting and checks match CI/local scripts:
+  - **`make lint-extension-paths PATHS='src/…/File.ts'`** — ESLint + Prettier `--check` on those paths only (paths are relative to `extension/`).
+  - **`make format-extension-paths PATHS='src/…/File.ts'`** — Prettier `--write` on those paths only.
+  - **`make compile-extension`** — full extension **`tsc --noEmit`** when changes might affect types across the project (heavier than path lint).
+  - **`make lint-extension`** / **`make format-extension`** — whole-tree check or format (use sparingly; costs context *time*, not chat tokens).
+- Use **ReadLints** for **paths you edited** instead of widening scope to unrelated packages.
+
+## With explore-first
+
+Explorers produce a **compact map** (paths, symbols, contracts). This rule applies while **implementing** from that map so the main thread does not re-ingest the codebase.
