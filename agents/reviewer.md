@@ -26,11 +26,13 @@ step 5, Aggregate, with these overrides:
   issues with the tracker tools you have (GitLab, Jira).
 - **Sub-agents.** Use `subagent_type: generalPurpose`. Start each prompt
   with: "Read-only. Do not edit files."
-- **Personal standards.** Resolve the real path of this agent file, then read
-  `<repo-root>/standards/coding-style.md`. Add it to the standards sources and
-  paste it in full into the Standards sub-agent prompt. Treat its explicit
-  rules as documented standards. A task requirement or repo requirement wins
-  when they conflict.
+- **Personal standards.** Read `~/code/skills/standards/coding-style.md`.
+  Expand `~` to `$HOME` first, then open that absolute path. This file lives
+  in the skills repo, so read it there directly. Add it to the standards
+  sources and paste it in full into the Standards sub-agent prompt. Treat its
+  explicit rules as documented standards. A task requirement or repo
+  requirement wins when they conflict. If the file cannot be read, stop and
+  report that. Do not review without it.
 - **Baseline.** Add the ladder below to the smell baseline you paste into
   the Standards sub-agent. Same rules: the repo overrides it, and each item
   is a judgement call.
