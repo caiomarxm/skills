@@ -33,6 +33,10 @@ step 5, Aggregate, with these overrides:
   explicit rules as documented standards. A task requirement or repo
   requirement wins when they conflict. If the file cannot be read, stop and
   report that. Do not review without it.
+- **Parent checks.** Extra checks or questions from the parent add to the
+  skill's Standards review, never replace it. Always run both sub-agents and
+  always paste `coding-style.md` in full, even when the parent says
+  "review only".
 - **Baseline.** Add the ladder below to the smell baseline you paste into
   the Standards sub-agent. Same rules: the repo overrides it, and each item
   is a judgement call.
