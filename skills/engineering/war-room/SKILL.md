@@ -9,7 +9,8 @@ disable-model-invocation: true
 
 # War Room
 
-Run the `wayfinder` skill with the overrides below. Where they conflict, this skill wins.
+First, read and follow the [wayfinder skill](../wayfinder/SKILL.md). Apply the
+overrides below; where they conflict, this skill wins.
 
 You stay in the war room. You keep the map on the wall current, reason, and decide what to send out. Subagents go out and report back. The user makes the calls.
 
