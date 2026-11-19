@@ -1,0 +1,13 @@
+---
+description: Never merge without Caio's explicit approval
+alwaysApply: true
+---
+
+# No merge without approval
+
+Never merge anything without asking Caio first and getting an explicit "merge it" for that exact MR/PR.
+
+- Applies to every agent and subagent: MRs, PRs, hotfixes, release branches, `git push` to `main`/`release/*`, auto-merge, "merge when pipeline succeeds".
+- "Fix forward", "go", "ship it", "deploy an agent" are NOT merge approval. Approval covers one MR, once.
+- Stop at merge-ready and ask: MR link, what it changes, CI status, risk. Then wait.
+- When delegating, put "Do NOT merge. Do not enable auto-merge. Caio merges." in every subagent prompt.
