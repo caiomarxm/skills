@@ -1,6 +1,6 @@
 # Cursor setup
 
-This repo contains personal Cursor skills, subagents, and always-applied rules.
+This repo contains personal Cursor skills and always-applied rules.
 
 ## Install
 
@@ -17,7 +17,7 @@ Link each Cursor directory to the repo. Existing directories are backed up:
 mkdir -p ~/.cursor
 backup=$(date +%Y%m%d-%H%M%S)
 
-for name in skills agents rules; do
+for name in skills rules; do
   target="$HOME/.cursor/$name"
   if [ -e "$target" ] || [ -L "$target" ]; then
     mv "$target" "$target.backup-$backup"
@@ -26,7 +26,7 @@ for name in skills agents rules; do
 done
 ```
 
-Open a new Cursor chat. Confirm that the skills, subagents, and rules appear.
+Open a new Cursor chat. Confirm that the skills and rules appear.
 
 ## Update
 
