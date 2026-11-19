@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "./hooks/context-budget.py",
+        "timeout": 10
+      }
+    ],
+    "afterAgentThought": [
+      {
+        "command": "./hooks/context-budget.py",
+        "timeout": 10
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": "./hooks/context-budget.py",
+        "timeout": 10
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "./hooks/context-budget.py",
+        "timeout": 10
+      },
+      {
+        "command": "./hooks/subagent-models.py",
+        "matcher": "Task|Subagent",
+        "timeout": 10,
+        "failClosed": true
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "./hooks/context-budget.py",
+        "timeout": 10
+      }
+    ],
+    "preCompact": [
+      {
+        "command": "./hooks/context-budget.py",
+        "timeout": 10
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "./hooks/subagent-models.py",
+        "timeout": 10
+      }
+    ]
+  }
+}
