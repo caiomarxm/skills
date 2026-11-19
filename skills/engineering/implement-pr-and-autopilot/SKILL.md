@@ -2,46 +2,82 @@
 name: implement-pr-and-autopilot
 description: >-
   Use this when the user asks you to fully implement and autopilot a PR from
-  a commit-by-commit plan (preferred), a spec, a design doc, or a task in the
-  chat. This assumes no user interaction until the whole loop is complete.
+  a spec, a design doc, a plan, or a task in the chat. The user approves the
+  QA plan once at the start; after that, no user interaction until the
+  whole loop is complete.
 disable-model-invocation: true
 ---
 
 # Implement PR and Autopilot
 
-Ship one PR. Do not plan: no `feature-plan`, no `grilling`.
+Ship one PR. Do not plan: no `grilling`.
+
+The flow: QA plan → user OK → implement → review → check → validate → tell
+the story in commits → open the PR.
+
+The work stays uncommitted until it is validated.
+
+## You orchestrate. You do not do.
+
+- Do not read code, edit files, run tests, review diffs, or validate
+  yourself. Send a subagent. Git housekeeping is yours: pull, cut the
+  branch, delete the backup branch.
+- You hold the source, the QA plan path, and the subagent reports. You
+  decide the next step from the reports.
+- Never act on a step before the subagent you are waiting on returns.
+
+## Subagents
+
+Launch each with `subagent_type: generalPurpose` and a model from the
+budget. Its prompt starts with the skill to follow, by absolute path (expand
+`~` to `$HOME`):
+
+```text
+Read ~/code/skills/skills/engineering/<skill>/SKILL.md and follow it.
+```
+
+Budget:
+
+- QA plan, validate: Composer 2.5, or Grok 4.7 when the validation is very
+  hard
+- Implement, check, commit story, open PR: Composer 2.5
+- Review: Composer 2.5, and its own sub-agents use Composer 2.5
 
 ## Input
 
 The **source** is one of:
 
-- A commit-by-commit plan: a file with a `## Plan` section. Preferred.
-- A spec or a design doc.
+- A spec, a design doc, or a plan file.
 - A task described in the chat.
 
 No source → stop and ask.
 
 The source is the truth for scope, tests, and settled decisions. Do not
-relitigate them.
+relitigate them. A commit list in the source is a hint for the commit story,
+not an order of work: the whole scope is built in one pass.
 
-**Commits:**
-
-- The source has a commit list → one loop per commit, in order.
-- No commit list → the whole task is one commit.
-
-**Which PR** (only for plans with `### PR <N>` or `### MR <N>` headings):
+**Which PR** (only for sources with `### PR <N>` or `### MR <N>` headings):
 
 - One heading → that PR.
 - Several, and the user named one → that one.
 - Several, and the user named none → ask which. Ask nothing else.
 
-State your reading (source, PR, commits) in your first message, then start.
+State your reading (source, PR) in your first message, then start.
+
+**Spec text.** Every subagent needs the spec. Source is a file → pass
+`@<source-file>`, plus `PR <N>` when there are headings. Source is the chat →
+the subagent cannot see this chat. Write the task, the decisions already
+made, and the files, symbols, and constraints from the chat into one block,
+and pass that same block to every subagent.
+
+**QA plan path.** `${TMPDIR:-/tmp}/qa-plans/<repo>-<branch>.md`, resolved to
+an absolute path. Outside the repo, so it never lands in the diff.
 
 ## Branch
 
 Work in this workspace. No worktree unless the user asks.
 
-Before the first commit:
+Before you start:
 
 - On a feature branch for this task → stay on it.
 - On the default branch (`main`/`master`) → pull, then cut a branch. Match
@@ -50,88 +86,128 @@ Before the first commit:
 
 Never commit to the default branch.
 
-## Loop — once per commit
+## 1. QA plan
 
-### 1. Implement
-
-Launch the `implementer` subagent. It runs
-[feature-implement](../feature-implement/SKILL.md) and leaves the diff
-unstaged.
-
-**Source is a file:**
+Launch the `validate` subagent in plan mode:
 
 ```text
-/feature-implement @<source-file> commit <K>
+Read ~/code/skills/skills/engineering/validate/SKILL.md and follow it.
 
-Commit <K> is one commit of the list in the ## Plan section<, under ### PR/MR
-N — include only if the plan has PR or MR headings>. Implement only commit <K>.
-Decisions above the plan are settled — follow them, do not relitigate.
+Mode: plan.
+Spec: <spec text>.
+QA plan path: <path>.
+<How to validate, when the spec or the user names it.>
 ```
 
-No commit list → send only `/feature-implement @<source-file>`.
+Then show the plan to the user, written the way the `plain-english` skill
+says (plain style): what will be proven, how each check runs, what is
+missing to run it, and what cannot be proven. Link the plan file. End with
+one ask: OK to start, or what to change?
 
-**Source is the chat:** the subagent cannot see this chat. Write the task and
-every piece of context it needs into the prompt:
+This is the only stop. Wait for the answer.
+
+- **OK** → step 2. From here on, do not ask the user anything.
+- **Changes** → relaunch the plan subagent with the user's words added,
+  then show it again.
+
+## 2. Implement
+
+Launch the `feature-implement` subagent:
 
 ```text
-/feature-implement
+Read ~/code/skills/skills/engineering/feature-implement/SKILL.md and follow it.
 
-<the task: what to build, and the decisions already made>
-<the context: files, symbols, and constraints from the chat>
-<only with a commit list: the full list, then "Implement only commit <K>.">
+Spec: <spec text>. Build the whole scope in one pass.
+Decisions in the spec are settled — do not relitigate them.
+The QA plan at <path> says how the work will be proven.
 ```
 
-### 2. Review
+## 3. Review
 
-Launch the `reviewer` subagent:
+Launch the `code-review` subagent. It must run both axes, Standards and
+Spec, in parallel sub-agents, then fix. A lighter review does not count.
 
 ```text
-Fixed point: HEAD. Review the uncommitted diff.
+Read ~/code/skills/skills/engineering/code-review/SKILL.md and follow it
+through step 6: review, then fix.
 
-Spec: <@source-file, commit <K> | the task text you sent in step 1>.
-Only commit <K> is in scope: later commits are not missing work.
+The diff is uncommitted, in <this workspace | the worktree at PATH>.
+Fixed point: HEAD.
+
+Spec: <spec text>.
 Decisions in the spec are settled — do not relitigate them.
 ```
 
-No commit list → drop the "Only commit <K>" line.
+The report must have `## Standards` and `## Spec`. Missing either means the
+review was skipped. Relaunch it with the same prompt.
 
-### 3. Commit
+## 4. Check the tree
 
-Commit the reviewer's result as is. Message: the project's commit-message
-rule (usually `:gitmoji: slug`, max 50 characters). Use the commit's title
-from the plan when it fits.
+Launch a check subagent:
 
-## After the last commit
+```text
+Run the repo's full lint and test suites, including integration and e2e.
+Prefer the repo's Make targets. Do not edit files.
+Report each command, pass or fail, and the failing output.
+```
 
-- Run the full lint and test suites the repo (including integration and e2e).
-  Fix anything red.
-- Then run Bugbot on the full PR and see if there are any bugs,
-  if there are, run the `implementer` subagent to fix them, then run
-  the `reviewer` subagent once again. Commit the fixes (if any).
-- Finally, launch the `validator` subagent. Optionally you can pass it specifics on
-  how to validate the work if you have it, maybe in the spec or defined by the user:
+Then run Bugbot on the uncommitted diff.
 
-  ```text
-  Spec: <@source-file | the task text>. Prove its desired outcome works.
-  Change: the commits since <base-branch>.
-  ```
+Red suites or Bugbot bugs → send them to `feature-implement` as findings,
+then review again (step 3) and check again.
 
-  - **works** → open the PR.
-  - **does not work** → send the failing outcomes and their evidence to the
-    `implementer` as the task, run the `reviewer`, commit, then validate
-    again. Still failing → stop and report to the user.
-  - **unproven** → open the MR, and list the gaps in its description.
+## 5. Validate
+
+Launch the `validate` subagent in run mode:
+
+```text
+Read ~/code/skills/skills/engineering/validate/SKILL.md and follow it.
+
+Mode: run.
+Spec: <spec text>.
+QA plan path: <path>. It is approved.
+Change: the uncommitted diff in <this workspace | the worktree at PATH>.
+```
+
+- **works** → step 6.
+- **does not work** → send the failing checks and their evidence to
+  `feature-implement` as findings, review again (step 3), check the tree
+  (step 4), then validate again. Still failing → stop and report to the user.
+- **unproven** → step 6, and list the gaps in the PR description.
+
+## 6. Tell the story
+
+Launch the `commit-story` subagent:
+
+```text
+Read ~/code/skills/skills/engineering/commit-story/SKILL.md and follow it.
+
+The diff is uncommitted, in <this workspace | the worktree at PATH>.
+Spec: <spec text>.
+```
+
+Its report must say the final tree is unchanged and every commit is green.
+Otherwise relaunch it from its backup branch.
+
+## 7. Open the PR
 
 Do not open a PR on a red tree.
 
-## Open the PR
+Launch a PR subagent:
 
+```text
+Read ~/code/skills/skills/engineering/pr/SKILL.md and follow it.
+
+Open the PR for this branch against <default branch>.
 Mirror the two most recent merged PRs on this repo.
+Title: <ticket key, when there is one> + short product title.
+Body: run the pr skill on the full branch diff and this validation report:
+<the validate report>. <Gaps to list, when unproven.>
+Return the PR URL.
+```
 
-- Title: ticket key (when there is one) + short product title.
-- Run `/pr` on the full branch diff and validation evidence. Use its output as
-  the PR body. Change it only to correct facts.
+After the PR is open, delete the `commit-story` backup branch.
 
-## Keep it merge-ready
+## 8. Keep it merge-ready
 
 Run the `autopilot` skill, wait at least 10 minutes for comments. Do not merge.

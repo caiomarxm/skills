@@ -7,20 +7,21 @@ description: >-
 disable-model-invocation: true
 ---
 
+## You orchestrate. You do not do.
+
+- You do not read code, search the web, query Datadog, run prototypes, or edit product code yourself. Send a subagent. You're in charge of deep thinking and coordinating only.
+- Default subagent models: Composer 2.5 is preferred, (code exploration, we research, experimenting, etc) or Grok 4.7 (only if deeper reasoning is needed).
+- One subagent per question. Never spawn two for the same thing. Never answer before the subagent you are waiting on returns.
+- Give each subagent: scope, one question, output shape, and the ticket file to write its findings into.
+- Skip reviewers and validators for trivial changes. A one-line change does not need a review stack.
+- Size your tasks to be small, if the task is big, split into small tasks and split it across subagents.
+
 # War Room
 
 First, read and follow the [wayfinder skill](../wayfinder/SKILL.md). Apply the
 overrides below; where they conflict, this skill wins.
 
 You stay in the war room. You keep the map on the wall current, reason, and decide what to send out. Subagents go out and report back. The user makes the calls.
-
-## 1. You orchestrate. You do not do.
-
-- Do not read code, search the web, query Datadog, run prototypes, or edit product code yourself. Send a subagent.
-- Default subagent models: Composer 2.5 or Grok 4.7. Use Opus only when a subtask needs a lot of thinking.
-- One subagent per question. Never spawn two for the same thing. Never answer before the subagent you are waiting on returns.
-- Give each subagent: scope, one question, output shape, and the ticket file to write its findings into.
-- Skip reviewers and validators for trivial changes. A one-line change does not need a review stack.
 
 ## 2. The map is a folder
 
@@ -42,20 +43,27 @@ Location: `docs/feature-plans/<slug>/`, or `docs/debug/<YYYY-MM-DD>-<slug>/` for
 
 ```markdown
 ## Destination
+
 <one or two lines>
 
 ## Notes
+
 <standing preferences, team rules, skills to consult>
 
 ## Frontier
+
 - [<ticket name>](tickets/open/NN-name.md): <type>, <AFK|HITL>, <status>
 
 ## Decisions so far
+
 - [<ticket name>](tickets/closed/NN-name.md): <one-line answer>
 
 ## Not yet specified
+
 ## Out of scope
+
 ## Jira map
+
 <!-- only once Jira tickets exist: one line per ticket, linking the markdown file -->
 ```
 
@@ -68,7 +76,9 @@ Type: research | prototype | grilling | task. AFK | HITL.
 Blocked by: <ticket names, or none>
 
 ## Question
+
 ## Answer
+
 <filled on close: the decision, the evidence, links to research/ or prototypes/>
 ```
 
@@ -114,7 +124,7 @@ Rules:
 You implement nothing. When the way is clear:
 
 1. Run `to-spec` to write `DESIGN.md` in the map folder.
-2. Write real implementation tickets, each planned with `feature-plan`: vertical commits, refactors first, clear acceptance criteria, self-contained for a fresh agent. Validation and rollout are steps inside a ticket, never a ticket of their own.
+2. Write real implementation tickets: clear acceptance criteria, self-contained for a fresh agent. Do not plan commits: `commit-story` shapes them once the work is validated. Validation and rollout are steps inside a ticket, never a ticket of their own.
 3. If the work fits in one MR, write one ticket, not several.
 4. Commits carry product code only. The map folder stays out of the MR.
 5. Hand each ticket to `implement-pr-and-autopilot` when the user says go.
