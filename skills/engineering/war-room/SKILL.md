@@ -27,7 +27,7 @@ You stay in the war room. You keep the map on the wall current, reason, and deci
 
 Do not use an issue tracker. Ignore wayfinder's labels, claims, and assignees.
 
-Location: `docs/feature-plans/<slug>/`, or `docs/debug/<YYYY-MM-DD>-<slug>/` for incidents. Use the path the user names if they give one.
+Location: `.war-rooms/<slug>/` at the Home Repo root (the folder whose `AGENTS.md` lists `repos/` and `.worktrees/`). For incidents, use `.debug/<repo>/investigations/<YYYY-MM-DD>-<slug>/`. Only markdown in `.war-rooms/` is committed, so prototypes and scripts stay local. Without a Home Repo, fall back to `docs/feature-plans/<slug>/` in the repo. Use the path the user names if they give one.
 
 ```
 <slug>/
