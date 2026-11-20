@@ -1,0 +1,24 @@
+---
+description: Commit message format
+alwaysApply: true
+---
+
+# Commit Messages
+
+**Format**: `:gitmoji: brief description of value/functionality`
+
+**Rules**:
+
+-   Focus on value, not implementation. No file names, phase numbers, or ticket IDs.
+-   Max 50 characters total (gitmoji counts as 1 character)
+-   Don't use an actual emoji, instead use a literal ":emoji:" syntax
+
+**Good**:
+
+-   `:sparkles: finish navigation recording sessions` (48 chars)
+-   `:bug: prevent steps after session completion` (44 chars)
+
+**Bad**:
+
+-   `feat: implement Phase 2 - add markNavigationComplete to RecordingProvider` (too long, wrong format)
+-   `:sparkles: add finishNavigation method to useRecording hook in RecordingProvider.tsx` (too long, mentions file)
