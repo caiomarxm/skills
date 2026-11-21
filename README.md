@@ -2,6 +2,8 @@
 
 This repo contains personal Cursor skills and always-applied rules.
 
+To install the vibecoding skills (idea to working app, for people who don't code) into a project for Claude Code, see [skills/vibecoding/README.md](skills/vibecoding/README.md).
+
 ## Install
 
 Clone the repo:
