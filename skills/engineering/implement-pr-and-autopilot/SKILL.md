@@ -119,12 +119,12 @@ The QA plan at <path> says how the work will be proven.
 
 ## 3. Review
 
-Launch the `code-review` subagent. It must run both axes, Standards and
-Spec, in parallel sub-agents, then fix. A lighter review does not count.
+Launch the `code-review` subagent. It must spawn one subagent per review
+skill, in parallel, then fix. A lighter review does not count.
 
 ```text
 Read ~/code/skills/skills/engineering/code-review/SKILL.md and follow it
-through step 6: review, then fix.
+through step 5: review, then fix.
 
 The diff is uncommitted, in <this workspace | the worktree at PATH>.
 Fixed point: HEAD.
@@ -133,8 +133,8 @@ Spec: <spec text>.
 Decisions in the spec are settled — do not relitigate them.
 ```
 
-The report must have `## Standards` and `## Spec`. Missing either means the
-review was skipped. Relaunch it with the same prompt.
+The report must have one heading per review skill. A missing heading means
+that review was skipped. Relaunch it with the same prompt.
 
 ## 4. Check the tree
 
