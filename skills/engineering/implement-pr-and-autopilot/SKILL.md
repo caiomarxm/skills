@@ -2,26 +2,22 @@
 name: implement-pr-and-autopilot
 description: >-
   Use this when the user asks you to fully implement and autopilot a PR from
-  a spec, a design doc, a plan, or a task in the chat. The user approves the
-  QA plan once at the start; after that, no user interaction until the
-  whole loop is complete.
+  a spec, a design doc, a plan, or a task in the chat.
 disable-model-invocation: true
 ---
 
 # Implement PR and Autopilot
 
-Ship one PR. Do not plan: no `grilling`.
+The flow: QA plan → user OK → implement → review → check → validate →
+commit → open the PR.
 
-The flow: QA plan → user OK → implement → review → check → validate → tell
-the story in commits → open the PR.
-
-The work stays uncommitted until it is validated.
+The work stays uncommitted until it is validated. Then it is one commit.
 
 ## You orchestrate. You do not do.
 
 - Do not read code, edit files, run tests, review diffs, or validate
   yourself. Send a subagent. Git housekeeping is yours: pull, cut the
-  branch, delete the backup branch.
+  branch, commit the validated diff.
 - You hold the source, the QA plan path, and the subagent reports. You
   decide the next step from the reports.
 - Never act on a step before the subagent you are waiting on returns.
@@ -38,9 +34,9 @@ Read ~/code/skills/skills/engineering/<skill>/SKILL.md and follow it.
 
 Budget:
 
-- QA plan, validate: Composer 2.5, or Grok 4.7 when the validation is very
+- qa-plan, validate: Composer 2.5, or Grok 4.7 when the validation is very
   hard
-- Implement, check, commit story, open PR: Composer 2.5
+- Implement, check, open PR: Composer 2.5
 - Review: Composer 2.5, and its own sub-agents use Composer 2.5
 
 ## Input
@@ -53,8 +49,8 @@ The **source** is one of:
 No source → stop and ask.
 
 The source is the truth for scope, tests, and settled decisions. Do not
-relitigate them. A commit list in the source is a hint for the commit story,
-not an order of work: the whole scope is built in one pass.
+relitigate them. The whole scope is built in one pass. A commit list in
+the source is not an order of work.
 
 **Which PR** (only for sources with `### PR <N>` or `### MR <N>` headings):
 
@@ -88,12 +84,11 @@ Never commit to the default branch.
 
 ## 1. QA plan
 
-Launch the `validate` subagent in plan mode:
+Launch the `qa-plan` subagent:
 
 ```text
-Read ~/code/skills/skills/engineering/validate/SKILL.md and follow it.
+Read ~/code/skills/skills/engineering/qa-plan/SKILL.md and follow it.
 
-Mode: plan.
 Spec: <spec text>.
 QA plan path: <path>.
 <How to validate, when the spec or the user names it.>
@@ -158,12 +153,11 @@ then review again (step 3) and check again.
 
 ## 5. Validate
 
-Launch the `validate` subagent in run mode:
+Launch the `validate` subagent:
 
 ```text
 Read ~/code/skills/skills/engineering/validate/SKILL.md and follow it.
 
-Mode: run.
 Spec: <spec text>.
 QA plan path: <path>. It is approved.
 Change: the uncommitted diff in <this workspace | the worktree at PATH>.
@@ -175,19 +169,14 @@ Change: the uncommitted diff in <this workspace | the worktree at PATH>.
   (step 4), then validate again. Still failing → stop and report to the user.
 - **unproven** → step 6, and list the gaps in the PR description.
 
-## 6. Tell the story
+## 6. Commit
 
-Launch the `commit-story` subagent:
+Commit the validated diff yourself, as one commit. Do not run
+`commit-story`. Do not split the history.
 
-```text
-Read ~/code/skills/skills/engineering/commit-story/SKILL.md and follow it.
-
-The diff is uncommitted, in <this workspace | the worktree at PATH>.
-Spec: <spec text>.
-```
-
-Its report must say the final tree is unchanged and every commit is green.
-Otherwise relaunch it from its backup branch.
+- Never commit to the default branch.
+- Match the repo's recent commit message style.
+- Do not commit secrets.
 
 ## 7. Open the PR
 
@@ -205,8 +194,6 @@ Body: run the pr skill on the full branch diff and this validation report:
 <the validate report>. <Gaps to list, when unproven.>
 Return the PR URL.
 ```
-
-After the PR is open, delete the `commit-story` backup branch.
 
 ## 8. Keep it merge-ready
 
