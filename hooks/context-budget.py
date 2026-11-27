@@ -15,6 +15,11 @@ the text it can see. One token is about 3/4 of a word, and dense tool
 output is also checked at 4 characters per token. A fixed reserve covers
 the parts that count cannot see. preCompact replaces the counted chat
 with an estimate of the messages that stay.
+
+War-room sessions are detected from prompts and tool paths and flagged
+in the per-conversation state file. At WARN/ALERT on postToolUse, those
+sessions get war-room handoff guidance in additional_context. README size
+checks on Write/StrReplace live here too (no extra hook process).
 """
 
 from __future__ import annotations
@@ -29,6 +34,7 @@ from pathlib import Path
 RESERVE = 35_000
 WARN_AT = 160_000
 ALERT_AT = 180_000
+README_SIZE_LIMIT = 6_144
 CURSOR_DB = (
     Path.home()
     / "Library/Application Support/Cursor/User/globalStorage/state.vscdb"
@@ -42,6 +48,13 @@ ALERT = (
     "Write a /handoff immediately so another agent can continue. "
     "If you have subagents still running, do not stop them.*"
 )
+WAR_ROOM_MARKERS = ("/war-room", "war-room/SKILL.md", ".war-rooms/")
+WAR_ROOM_HANDOFF = (
+    "War-room handoff: include the map path, absolute paths, decisions, and "
+    "open questions — no task list (the README is the task list). "
+    "Resuming agent: read only handoff → README → one open frontier ticket."
+)
+TOP_LEVEL_WAR_ROOM_README = re.compile(r"(?:^|/)\.war-rooms/[^/]+/README\.md$")
 
 STATE_DIR = Path.home() / ".cursor" / "context-budget-state"
 SAFE_FAILURE = {"permission": "allow", "continue": True}
@@ -76,18 +89,67 @@ def text_for(event: str, payload: dict) -> str:
     return ""
 
 
+def text_indicates_war_room(text: str) -> bool:
+    return any(marker in text for marker in WAR_ROOM_MARKERS)
+
+
+def tool_input_indicates_war_room(tool_input: object) -> bool:
+    if tool_input is None:
+        return False
+    if isinstance(tool_input, dict):
+        path = tool_input.get("path")
+        if isinstance(path, str) and text_indicates_war_room(path):
+            return True
+    serialized = (
+        tool_input
+        if isinstance(tool_input, str)
+        else json.dumps(tool_input, ensure_ascii=False, separators=(",", ":"))
+    )
+    return text_indicates_war_room(serialized)
+
+
+def detect_war_room(event: str, payload: dict) -> bool:
+    if event == "beforeSubmitPrompt":
+        return text_indicates_war_room(str(payload.get("prompt") or ""))
+    if event in {"preToolUse", "postToolUse"}:
+        if tool_input_indicates_war_room(payload.get("tool_input")):
+            return True
+        return text_indicates_war_room(text_for(event, payload))
+    return False
+
+
 def state_path(conversation_id: str) -> Path:
     safe = re.sub(r"[^A-Za-z0-9._-]", "_", conversation_id)[:160]
     return STATE_DIR / f"{safe}.json"
 
 
-def read_tokens(path: Path) -> int:
+def read_state(path: Path) -> dict:
     if not path.exists():
-        return 0
+        return {"tokens": 0, "war_room": False}
     try:
-        return int(json.loads(path.read_text()).get("tokens") or 0)
+        data = json.loads(path.read_text())
+        return {
+            "tokens": int(data.get("tokens") or 0),
+            "war_room": bool(data.get("war_room")),
+        }
     except (OSError, json.JSONDecodeError, TypeError, ValueError):
-        return 0
+        return {"tokens": 0, "war_room": False}
+
+
+def read_tokens(path: Path) -> int:
+    return int(read_state(path).get("tokens") or 0)
+
+
+def write_state(
+    path: Path, *, tokens: int, war_room: bool | None = None
+) -> None:
+    import fcntl
+
+    current = read_state(path)
+    merged_war_room = current.get("war_room") or bool(war_room)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"tokens": tokens, "war_room": merged_war_room}))
+    os.replace(tmp, path)
 
 
 def update_tokens(conversation_id: str, extra: int | None = None, replace: int | None = None) -> int:
@@ -101,11 +163,65 @@ def update_tokens(conversation_id: str, extra: int | None = None, replace: int |
     lock_path = path.with_suffix(".lock")
     with lock_path.open("a+") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-        total = replace if replace is not None else read_tokens(path) + (extra or 0)
-        tmp = path.with_suffix(".tmp")
-        tmp.write_text(json.dumps({"tokens": total}))
-        os.replace(tmp, path)
+        current = read_state(path)
+        total = replace if replace is not None else int(current.get("tokens") or 0) + (extra or 0)
+        write_state(path, tokens=total, war_room=current.get("war_room") or False)
         return total
+
+
+def touch_war_room(conversation_id: str) -> bool:
+    if not conversation_id:
+        return False
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    path = state_path(conversation_id)
+    import fcntl
+
+    lock_path = path.with_suffix(".lock")
+    with lock_path.open("a+") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        current = read_state(path)
+        if current.get("war_room"):
+            return True
+        write_state(path, tokens=int(current.get("tokens") or 0), war_room=True)
+        return True
+
+
+def war_room_for_conversation(conversation_id: str, event: str, payload: dict) -> bool:
+    if not conversation_id:
+        return False
+    path = state_path(conversation_id)
+    if read_state(path).get("war_room"):
+        return True
+    if detect_war_room(event, payload):
+        return touch_war_room(conversation_id)
+    return False
+
+
+def is_top_level_war_room_readme(path: str) -> bool:
+    normalized = path.replace("\\", "/")
+    return bool(TOP_LEVEL_WAR_ROOM_README.search(normalized))
+
+
+def readme_size_warning(payload: dict) -> str | None:
+    tool_name = payload.get("tool_name")
+    if tool_name not in {"Write", "StrReplace"}:
+        return None
+    tool_input = payload.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return None
+    file_path = tool_input.get("path")
+    if not isinstance(file_path, str) or not is_top_level_war_room_readme(file_path):
+        return None
+    try:
+        size = Path(file_path).stat().st_size
+    except OSError:
+        return None
+    if size <= README_SIZE_LIMIT:
+        return None
+    return (
+        f"The war-room README is {size / 1024:.1f} KB (over the 6 KB target). "
+        "Keep it a slim index; move detail into tickets or research/."
+    )
 
 
 def kept_after_compact(payload: dict) -> int:
@@ -192,15 +308,32 @@ def notice_for(total: int) -> str | None:
     return None
 
 
-def response_for(event: str, total: int, limit: int | None = None) -> dict:
+def response_for(
+    event: str,
+    total: int,
+    limit: int | None = None,
+    *,
+    war_room: bool = False,
+    payload: dict | None = None,
+) -> dict:
     if event == "preToolUse":
         return {"permission": "allow"}
     if event == "beforeSubmitPrompt":
         return {"continue": True}
-    notice = notice_for(total)
-    if event == "postToolUse" and notice is not None:
-        detail = f"{total} / {limit} tokens." if limit else f"{total} tokens."
-        return {"additional_context": f"{notice}\n\nContext: {detail}"}
+    if event == "postToolUse":
+        parts: list[str] = []
+        notice = notice_for(total)
+        if notice is not None:
+            detail = f"{total} / {limit} tokens." if limit else f"{total} tokens."
+            parts.append(f"{notice}\n\nContext: {detail}")
+            if war_room:
+                parts.append(WAR_ROOM_HANDOFF)
+        readme_warn = readme_size_warning(payload or {})
+        if readme_warn:
+            parts.append(readme_warn)
+        if parts:
+            return {"additional_context": "\n\n".join(parts)}
+        return {}
     return {}
 
 
@@ -212,6 +345,7 @@ def main() -> None:
             raise ValueError("hook payload is not an object")
         event = str(payload.get("hook_event_name") or "")
         conversation_id = str(payload.get("conversation_id") or "")
+        war_room = war_room_for_conversation(conversation_id, event, payload)
         is_subagent, reported = load_chat(conversation_id) if conversation_id else (False, None)
         limit = None
         if is_subagent:
@@ -226,7 +360,10 @@ def main() -> None:
             extra = estimate_tokens(text_for(event, payload))
             counted = update_tokens(conversation_id, extra=extra) if conversation_id else extra
             total = estimated_total(counted) if conversation_id else extra
-        json.dump(response_for(event, total, limit), sys.stdout)
+        json.dump(
+            response_for(event, total, limit, war_room=war_room, payload=payload),
+            sys.stdout,
+        )
         sys.stdout.write("\n")
     except Exception:
         json.dump(SAFE_FAILURE, sys.stdout)
