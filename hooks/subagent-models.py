@@ -2,7 +2,7 @@
 """Only allow selected models for Task subagents.
 
 Allowed today: composer-2.5, composer-2.5-fast, grok-4.7 at any thinking
-level (grok-4.7, grok-4.7-high, and similar).
+level, and gemini-4-neon at any thinking level.
 """
 
 from __future__ import annotations
@@ -13,8 +13,8 @@ import sys
 ALLOWED = frozenset({"composer-2.5", "composer-2.5-fast"})
 DENY_MESSAGE = (
     "Subagent blocked: only composer-2.5, composer-2.5-fast, grok-4.7 "
-    "(any thinking level) are allowed. Every subagent call must name one "
-    "of these models explicitly."
+    "(any thinking level), and gemini-4-neon (any thinking level) are "
+    "allowed. Every subagent call must name one of these models explicitly."
 )
 
 
@@ -29,7 +29,12 @@ def allowed_subagent_model(model: str | None) -> bool:
         return False
     if normalized in ALLOWED:
         return True
-    return normalized == "grok-4.7" or normalized.startswith("grok-4.7-")
+    return (
+        normalized == "grok-4.7"
+        or normalized.startswith("grok-4.7-")
+        or normalized == "gemini-4-neon"
+        or normalized.startswith("gemini-4-neon-")
+    )
 
 
 def model_from_payload(payload: dict) -> str | None:
@@ -49,6 +54,15 @@ def task_model(payload: dict) -> str | None:
     return model_from_payload(payload)
 
 
+def task_resume(payload: dict) -> str | None:
+    tool_input = payload.get("tool_input")
+    if isinstance(tool_input, dict):
+        value = tool_input.get("resume")
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
+
+
 def is_subagent_tool(payload: dict) -> bool:
     name = payload.get("tool_name")
     return isinstance(name, str) and name in {"Task", "Subagent"}
@@ -58,6 +72,8 @@ def decide(payload: dict) -> dict:
     event = str(payload.get("hook_event_name") or "")
     if event == "preToolUse":
         if not is_subagent_tool(payload):
+            return {"permission": "allow"}
+        if task_resume(payload):
             return {"permission": "allow"}
         model = task_model(payload)
         if allowed_subagent_model(model):
