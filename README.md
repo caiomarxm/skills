@@ -19,7 +19,7 @@ Link each Cursor directory to the repo. Existing directories are backed up:
 mkdir -p ~/.cursor
 backup=$(date +%Y%m%d-%H%M%S)
 
-for name in skills rules; do
+for name in skills; do
   target="$HOME/.cursor/$name"
   if [ -e "$target" ] || [ -L "$target" ]; then
     mv "$target" "$target.backup-$backup"
@@ -28,7 +28,7 @@ for name in skills rules; do
 done
 ```
 
-Open a new Cursor chat. Confirm that the skills and rules appear.
+Open a new Cursor chat. Confirm that the skills appear. Rules stay in the projects workspace, not in `~/.cursor/rules`.
 
 ## Update
 

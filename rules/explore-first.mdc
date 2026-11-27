@@ -31,7 +31,7 @@ Each Task prompt must include:
 ## How to delegate
 
 1. **Self-scope** — quick Grep/Glob to pick **2–5** focal areas (cheap).
-2. **Parallel explore Tasks** — `subagent_type: "explore"`, `model: "composer-2-fast"`, `run_in_background: true` (always set model for explores).
+2. **Parallel explore Tasks** — `subagent_type: "explore"`, `model: "composer-2.5-fast"`, `run_in_background: true` (always set model for explores).
 3. **Independent sub-questions** — no sub-agent depends on another’s answer.
 4. **Stop main-thread discovery while explorers run** — after spawning explore sub-agents, **do not continue reading overlapping files, searching the same area, or building a parallel answer**. Use the waiting time only for unrelated work, **or pause**.
 5. **Trust the explorer contract first** — when results return, start from the paths, symbols, contracts, and line ranges they cite. If the result is missing something, ask a sharper follow-up explorer question before widening main-thread reads.
